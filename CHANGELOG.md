@@ -6,6 +6,8 @@ Notable changes to `go-vintagestory`. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
 ### Added
 
 - `modinfo`: `Parse` reads a modinfo.json as leniently as the game does — any key case, comments and trailing commas — into `ModInfo`.
@@ -13,4 +15,5 @@ Notable changes to `go-vintagestory`. The format follows
 - `savedb`: `Read` opens a world's `.vcdbs` read-only and returns its name, play style, game version, play time, world id and the mod domains its blocks and items record.
 - `moddb`: `Client` lists, reads and tags against the Vintage Story Mod DB, with release selection (`Newest`, `PreRelease`), id and page helpers, and `ParseLink` for `vintagestorymodinstall://` links.
 
-[Unreleased]: https://github.com/Rethunk-Tech/go-vintagestory/commits/main
+[Unreleased]: https://github.com/Rethunk-Tech/go-vintagestory/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Rethunk-Tech/go-vintagestory/releases/tag/v0.1.0
