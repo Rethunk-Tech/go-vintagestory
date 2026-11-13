@@ -1,6 +1,11 @@
 package savedb
 
-import "testing"
+import (
+	"encoding/binary"
+	"slices"
+	"strings"
+	"testing"
+)
 
 // FuzzEachField holds that no bytes make the gamedata walk panic or read past its buffer, and that a walked field's
 // bytes never reach outside the message they came from.
@@ -16,5 +21,29 @@ func FuzzEachField(f *testing.F) {
 				t.Fatalf("field of %d bytes from a %d-byte message", len(b), len(msg))
 			}
 		})
+	})
+}
+
+// FuzzAddCodeDomains holds that a ModData entry yields only domains a mod could own: non-empty, lower-case, free of the
+// separator, and never a base-game domain.
+func FuzzAddCodeDomains(f *testing.F) {
+	for _, key := range []string{"BlockIDs", "ItemIDs", "Other"} {
+		pair := protoString(nil, 2, "MyMod:plank")
+		ids := binary.AppendUvarint(nil, 1<<3|2)
+		ids = binary.AppendUvarint(ids, uint64(len(pair)))
+		ids = append(ids, pair...)
+		entry := protoString(nil, 1, key)
+		entry = binary.AppendUvarint(entry, 2<<3|2)
+		entry = binary.AppendUvarint(entry, uint64(len(ids)))
+		f.Add(append(entry, ids...))
+	}
+	f.Fuzz(func(t *testing.T, entry []byte) {
+		used := map[string]struct{}{}
+		addCodeDomains(entry, used)
+		for d := range used {
+			if d == "" || d != strings.ToLower(d) || strings.Contains(d, ":") || slices.Contains(baseDomains, d) {
+				t.Fatalf("domain %q from %x", d, entry)
+			}
+		}
 	})
 }

@@ -3,6 +3,7 @@ package moddb
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -52,6 +53,27 @@ func FuzzParseLink(f *testing.F) {
 		ref, err := ParseLink(raw)
 		if err == nil && (!refModID.MatchString(ref.ModID) || !refVersion.MatchString(ref.Version)) {
 			t.Fatalf("%q gave %+v", raw, ref)
+		}
+	})
+}
+
+// FuzzSplitID holds that an accepted id names a numeric mod, and that SplitID takes apart what ID joins.
+func FuzzSplitID(f *testing.F) {
+	f.Add("123-456", 123, 456)
+	f.Add("123", 0, 0)
+	f.Add("x-1", 7, 0)
+	f.Fuzz(func(t *testing.T, id string, modID, assetID int) {
+		if m, _, ok := SplitID(id); ok {
+			if _, err := strconv.Atoi(m); err != nil {
+				t.Fatalf("SplitID(%q) accepted mod id %q", id, m)
+			}
+		}
+		if modID < 0 || assetID < 0 {
+			return
+		}
+		m, a, ok := SplitID(ID(modID, assetID))
+		if !ok || m != strconv.Itoa(modID) || a != strconv.Itoa(assetID) {
+			t.Fatalf("SplitID(ID(%d, %d)) = %q, %q, %v", modID, assetID, m, a, ok)
 		}
 	})
 }
