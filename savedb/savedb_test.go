@@ -81,3 +81,26 @@ func TestReadOfAFileThatIsNotSQLiteFails(t *testing.T) {
 		t.Fatal("a file that is not a database read as one")
 	}
 }
+
+func TestReadOpensARelativeWorldPath(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "world.vcdbs")
+	conn, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.ExecContext(t.Context(), "CREATE TABLE gamedata (savegameid integer PRIMARY KEY, data BLOB)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.ExecContext(t.Context(), "INSERT INTO gamedata VALUES (1, ?)", []byte{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	if _, err := Read(t.Context(), "world.vcdbs"); err != nil {
+		t.Fatal(err)
+	}
+}
+
