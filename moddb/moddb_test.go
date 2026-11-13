@@ -1,9 +1,12 @@
 package moddb
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Rethunk-Tech/go-httpkit"
 )
 
 func fake(t *testing.T) *Client {
@@ -104,3 +107,11 @@ func TestTagsNumericTagID(t *testing.T) {
 		t.Fatalf("Tags()[library] = %q, want 186", got["library"])
 	}
 }
+
+func TestModUnknownIsNotFound(t *testing.T) {
+	_, err := fake(t).Mod(t.Context(), "this-mod-does-not-exist-xyzzy999")
+	if !errors.Is(err, httpkit.ErrNotFound) {
+		t.Fatalf("missing mod: %v", err)
+	}
+}
+

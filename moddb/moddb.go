@@ -204,7 +204,7 @@ func (c *Client) Mod(ctx context.Context, ref string) (Mod, error) {
 		return Mod{}, err
 	}
 	if parsed.Mod == nil {
-		return Mod{}, fmt.Errorf("%s is not on the Vintage Story Mod DB", ref)
+		return Mod{}, fmt.Errorf("vintage story mod db: %w", &httpkit.StatusError{Code: http.StatusNotFound, Status: "404 Not Found"})
 	}
 	return *parsed.Mod, nil
 }
