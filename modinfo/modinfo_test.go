@@ -17,3 +17,10 @@ func TestParseReadsAnyKeyCaseAndLenientJSON(t *testing.T) {
 		t.Fatalf("info = %+v, %v", info, err)
 	}
 }
+
+func TestParseReadsANumberAsItsText(t *testing.T) {
+	info, err := Parse([]byte(`{"modid": "a", "version": 1.2}`))
+	if err != nil || info.Version != "1.2" {
+		t.Fatalf("info = %+v, %v", info, err)
+	}
+}

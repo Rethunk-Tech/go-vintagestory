@@ -62,8 +62,13 @@ func field(raw map[string]json.RawMessage, name string) json.RawMessage {
 }
 
 func text(raw map[string]json.RawMessage, name string) string {
+	f := field(raw, name)
+	var n json.Number // Newtonsoft reads a bare number as the string it spells
+	if json.Unmarshal(f, &n) == nil && n != "" {
+		return n.String()
+	}
 	var s string
-	if json.Unmarshal(field(raw, name), &s) != nil {
+	if json.Unmarshal(f, &s) != nil {
 		return ""
 	}
 	return strings.TrimSpace(s)
