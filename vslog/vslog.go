@@ -27,7 +27,7 @@ func ParseLine(line string) (Line, bool) {
 }
 
 // versionLine is the line the game logs at start: "Game Version: v1.21.5 (Stable)".
-var versionLine = regexp.MustCompile(`^Game Version: v(\d+(?:\.\d+)+)`)
+var versionLine = regexp.MustCompile(`^Game Version: v(\S+)`)
 
 // GameVersion is the game version a log message names, without its "v"; empty when it names none.
 func GameVersion(message string) string {

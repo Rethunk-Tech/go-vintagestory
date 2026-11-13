@@ -18,6 +18,9 @@ func TestGameVersionReadsTheVersionTheGameLogsAtStart(t *testing.T) {
 	if !ok || GameVersion(line.Message) != "1.21.5" {
 		t.Fatalf("line %+v: version %q", line, GameVersion(line.Message))
 	}
+	if GameVersion("Game Version: v1.22.0-rc.4 (Unstable)") != "1.22.0-rc.4" {
+		t.Fatalf("rc version %q", GameVersion("Game Version: v1.22.0-rc.4 (Unstable)"))
+	}
 	if GameVersion("Client logger started.") != "" {
 		t.Fatal("a line naming no version gave one")
 	}
