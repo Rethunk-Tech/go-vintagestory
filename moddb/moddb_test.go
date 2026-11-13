@@ -114,3 +114,9 @@ func TestModUnknownIsNotFound(t *testing.T) {
 		t.Fatalf("missing mod: %v", err)
 	}
 }
+
+func TestPreReleaseIgnoresBuildMetadata(t *testing.T) {
+	if PreRelease("1.0.0+build-3") || !PreRelease("1.0.0-rc.1+build") {
+		t.Fatal("build metadata decides the release kind")
+	}
+}

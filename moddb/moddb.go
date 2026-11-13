@@ -252,4 +252,7 @@ func PageURL(alias string, assetID int) string {
 }
 
 // PreRelease reports a version its author marks as a test build (1.0.0-rc.1, 2.0.0-pre.8, 1.2-dev.3).
-func PreRelease(version string) bool { return strings.Contains(version, "-") }
+func PreRelease(version string) bool {
+	core, _, _ := strings.Cut(version, "+")
+	return strings.Contains(core, "-")
+}
