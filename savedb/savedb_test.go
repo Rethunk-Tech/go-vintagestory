@@ -103,3 +103,21 @@ func TestReadOpensARelativeWorldPath(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAddCodeDomainsSkipsBaseDomainsInAnyCase(t *testing.T) {
+	var pair []byte
+	pair = protoString(pair, 2, "Game:plank")
+	var ids []byte
+	ids = binary.AppendUvarint(ids, 1<<3|2)
+	ids = binary.AppendUvarint(ids, uint64(len(pair)))
+	ids = append(ids, pair...)
+	entry := protoString(nil, 1, "BlockIDs")
+	entry = binary.AppendUvarint(entry, 2<<3|2)
+	entry = binary.AppendUvarint(entry, uint64(len(ids)))
+	entry = append(entry, ids...)
+	used := map[string]struct{}{}
+	addCodeDomains(entry, used)
+	if len(used) != 0 {
+		t.Fatalf("domains = %v", used)
+	}
+}

@@ -128,8 +128,8 @@ func addCodeDomains(entry []byte, used map[string]struct{}) {
 			return
 		}
 		_ = eachField(pair, func(n, _ uint64, code []byte) {
-			if domain, _, ok := strings.Cut(string(code), ":"); n == 2 && ok && domain != "" && !slices.Contains(baseDomains, domain) {
-				used[strings.ToLower(domain)] = struct{}{}
+			if domain, _, ok := strings.Cut(strings.ToLower(string(code)), ":"); n == 2 && ok && domain != "" && !slices.Contains(baseDomains, domain) {
+				used[domain] = struct{}{}
 			}
 		})
 	})
