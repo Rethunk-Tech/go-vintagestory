@@ -213,8 +213,8 @@ func (c *Client) Mod(ctx context.Context, ref string) (Mod, error) {
 func (c *Client) Tags(ctx context.Context) (map[string]string, error) {
 	var parsed struct {
 		Tags []struct {
-			ID   string `json:"tagid"`
-			Name string `json:"name"`
+			ID   json.Number `json:"tagid"`
+			Name string      `json:"name"`
 		} `json:"tags"`
 	}
 	if err := c.get(ctx, "/tags", nil, &parsed); err != nil {
@@ -222,7 +222,7 @@ func (c *Client) Tags(ctx context.Context) (map[string]string, error) {
 	}
 	ids := make(map[string]string, len(parsed.Tags))
 	for _, t := range parsed.Tags {
-		ids[strings.ToLower(t.Name)] = t.ID
+		ids[strings.ToLower(t.Name)] = t.ID.String()
 	}
 	return ids, nil
 }

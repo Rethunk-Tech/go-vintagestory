@@ -86,3 +86,21 @@ func TestIDsAndPagesAgreeWithTheSite(t *testing.T) {
 		t.Errorf("asset page = %q", got)
 	}
 }
+
+func TestTagsNumericTagID(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/tags" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"tags":[{"tagid":186,"name":"Library"}]}`))
+	}))
+	t.Cleanup(srv.Close)
+	got, err := New(Config{BaseURL: srv.URL, HTTP: srv.Client()}).Tags(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["library"] != "186" {
+		t.Fatalf("Tags()[library] = %q, want 186", got["library"])
+	}
+}
