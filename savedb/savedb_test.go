@@ -103,4 +103,3 @@ func TestReadOpensARelativeWorldPath(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-

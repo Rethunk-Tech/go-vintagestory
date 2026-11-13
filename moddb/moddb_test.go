@@ -114,4 +114,3 @@ func TestModUnknownIsNotFound(t *testing.T) {
 		t.Fatalf("missing mod: %v", err)
 	}
 }
-
