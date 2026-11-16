@@ -31,3 +31,10 @@ func TestParseReadsANumericGameVersion(t *testing.T) {
 		t.Fatalf("info = %+v, %v", info, err)
 	}
 }
+
+func TestParseTrimsWildcardGameVersion(t *testing.T) {
+	info, err := Parse([]byte(`{"dependencies":{"game":" * "}}`))
+	if err != nil || info.GameVersion != "" {
+		t.Fatalf("info = %+v, %v", info, err)
+	}
+}

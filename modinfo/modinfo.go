@@ -49,8 +49,9 @@ func Parse(b []byte) (ModInfo, error) {
 			} else if json.Unmarshal(v, &ver) != nil {
 				continue
 			}
+			ver = strings.TrimSpace(ver)
 			if strings.EqualFold(id, "game") && ver != "*" {
-				info.GameVersion = strings.TrimPrefix(strings.TrimSpace(ver), "v")
+				info.GameVersion = strings.TrimPrefix(ver, "v")
 			}
 		}
 		slices.Sort(info.Dependencies)
