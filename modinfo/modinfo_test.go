@@ -24,3 +24,10 @@ func TestParseReadsANumberAsItsText(t *testing.T) {
 		t.Fatalf("info = %+v, %v", info, err)
 	}
 }
+
+func TestParseReadsANumericGameVersion(t *testing.T) {
+	info, err := Parse([]byte(`{"dependencies":{"game":1.21}}`))
+	if err != nil || info.GameVersion != "1.21" {
+		t.Fatalf("info = %+v, %v", info, err)
+	}
+}

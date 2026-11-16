@@ -43,7 +43,13 @@ func Parse(b []byte) (ModInfo, error) {
 		for id, v := range deps {
 			info.Dependencies = append(info.Dependencies, strings.ToLower(id))
 			var ver string
-			if strings.EqualFold(id, "game") && json.Unmarshal(v, &ver) == nil && ver != "*" {
+			var n json.Number
+			if json.Unmarshal(v, &n) == nil && n != "" {
+				ver = n.String()
+			} else if json.Unmarshal(v, &ver) != nil {
+				continue
+			}
+			if strings.EqualFold(id, "game") && ver != "*" {
 				info.GameVersion = strings.TrimPrefix(strings.TrimSpace(ver), "v")
 			}
 		}
