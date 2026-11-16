@@ -67,6 +67,7 @@ func Read(ctx context.Context, path string) (World, error) {
 	}
 	var w World
 	used := map[string]struct{}{}
+	var domainsErr error
 	err = eachField(data, func(num, v uint64, b []byte) {
 		switch num {
 		case vsWorldName:
@@ -83,11 +84,16 @@ func Read(ctx context.Context, path string) (World, error) {
 		case vsSavegameIdentifier:
 			w.WorldID = string(b)
 		case vsModData:
-			addCodeDomains(b, used)
+			if domainsErr == nil {
+				domainsErr = addCodeDomains(b, used)
+			}
 		}
 	})
 	if err != nil {
 		return World{}, err
+	}
+	if domainsErr != nil {
+		return World{}, domainsErr
 	}
 	w.Domains = w.Domains[:0]
 	for d := range used {
@@ -109,30 +115,37 @@ func readOnlyURI(db string) string {
 
 // addCodeDomains adds to used the domain of each code in one ModData entry when it is the world's block or item id map
 // (map<int32,string> of codes, "domain:path" for a mod's content).
-func addCodeDomains(entry []byte, used map[string]struct{}) {
+func addCodeDomains(entry []byte, used map[string]struct{}) error {
 	var key string
 	var value []byte
-	_ = eachField(entry, func(num, _ uint64, b []byte) {
+	if err := eachField(entry, func(num, _ uint64, b []byte) {
 		switch num {
 		case 1:
 			key = string(b)
 		case 2:
 			value = b
 		}
-	})
-	if key != "BlockIDs" && key != "ItemIDs" {
-		return
+	}); err != nil {
+		return err
 	}
-	_ = eachField(value, func(num, _ uint64, pair []byte) {
-		if num != 1 {
+	if key != "BlockIDs" && key != "ItemIDs" {
+		return nil
+	}
+	var inner error
+	err := eachField(value, func(num, _ uint64, pair []byte) {
+		if num != 1 || inner != nil {
 			return
 		}
-		_ = eachField(pair, func(n, _ uint64, code []byte) {
+		inner = eachField(pair, func(n, _ uint64, code []byte) {
 			if domain, _, ok := strings.Cut(strings.ToLower(string(code)), ":"); n == 2 && ok && domain != "" && !slices.Contains(baseDomains, domain) {
 				used[domain] = struct{}{}
 			}
 		})
 	})
+	if err != nil {
+		return err
+	}
+	return inner
 }
 
 // eachField calls f with each top-level field of a protobuf message: a varint's value, or a length-delimited field's
