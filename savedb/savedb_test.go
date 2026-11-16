@@ -121,3 +121,13 @@ func TestAddCodeDomainsSkipsBaseDomainsInAnyCase(t *testing.T) {
 		t.Fatalf("domains = %v", used)
 	}
 }
+
+func TestEachFieldUnclosedGroupIsBadProto(t *testing.T) {
+	var data []byte
+	data = binary.AppendUvarint(data, 40<<3|3)
+	data = protoString(data, vsWorldName, "Bjornheim")
+	data = protoString(data, vsLastSavedVersion, "1.21.4")
+	if err := eachField(data, func(uint64, uint64, []byte) {}); err != errBadProto {
+		t.Fatalf("err = %v", err)
+	}
+}
