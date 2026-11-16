@@ -4,6 +4,7 @@ package modinfo
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"slices"
 	"strings"
 
@@ -40,7 +41,8 @@ func Parse(b []byte) (ModInfo, error) {
 	}
 	var deps map[string]json.RawMessage
 	if json.Unmarshal(field(raw, "dependencies"), &deps) == nil {
-		for id, v := range deps {
+		for _, id := range slices.Sorted(maps.Keys(deps)) {
+			v := deps[id]
 			info.Dependencies = append(info.Dependencies, strings.ToLower(id))
 			var ver string
 			var n json.Number
@@ -50,19 +52,20 @@ func Parse(b []byte) (ModInfo, error) {
 				continue
 			}
 			ver = strings.TrimSpace(ver)
-			if strings.EqualFold(id, "game") && ver != "*" {
+			if strings.EqualFold(id, "game") && ver != "*" && info.GameVersion == "" {
 				info.GameVersion = strings.TrimPrefix(ver, "v")
 			}
 		}
 		slices.Sort(info.Dependencies)
+		info.Dependencies = slices.Compact(info.Dependencies)
 	}
 	return info, nil
 }
 
 func field(raw map[string]json.RawMessage, name string) json.RawMessage {
-	for k, v := range raw {
+	for _, k := range slices.Sorted(maps.Keys(raw)) {
 		if strings.EqualFold(k, name) {
-			return v
+			return raw[k]
 		}
 	}
 	return nil

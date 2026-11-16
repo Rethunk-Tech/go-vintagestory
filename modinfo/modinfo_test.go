@@ -38,3 +38,20 @@ func TestParseTrimsWildcardGameVersion(t *testing.T) {
 		t.Fatalf("info = %+v, %v", info, err)
 	}
 }
+
+func TestParseDuplicateModIDCaseIsDeterministic(t *testing.T) {
+	in := []byte(`{"modid":"lower","ModID":"UPPER"}`)
+	for range 32 {
+		info, err := Parse(in)
+		if err != nil || info.ModID != "UPPER" {
+			t.Fatalf("info = %+v, %v", info, err)
+		}
+	}
+}
+
+func TestParseDuplicateGameDepCase(t *testing.T) {
+	info, err := Parse([]byte(`{"dependencies":{"game":"1.20","Game":"1.21"}}`))
+	if err != nil || !slices.Equal(info.Dependencies, []string{"game"}) || info.GameVersion != "1.21" {
+		t.Fatalf("info = %+v, %v", info, err)
+	}
+}
