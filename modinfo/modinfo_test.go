@@ -40,11 +40,15 @@ func TestParseTrimsWildcardGameVersion(t *testing.T) {
 }
 
 func TestParseDuplicateModIDCaseIsDeterministic(t *testing.T) {
-	in := []byte(`{"modid":"lower","ModID":"UPPER"}`)
-	for range 32 {
-		info, err := Parse(in)
-		if err != nil || info.ModID != "UPPER" {
-			t.Fatalf("info = %+v, %v", info, err)
+	for in, want := range map[string]string{
+		`{"modid":"lower","ModID":"UPPER"}`: "UPPER",
+		`{"ModID":"UPPER","modid":"lower"}`: "lower",
+	} {
+		for range 32 {
+			info, err := Parse([]byte(in))
+			if err != nil || info.ModID != want {
+				t.Fatalf("%s: info = %+v, %v", in, info, err)
+			}
 		}
 	}
 }
@@ -52,6 +56,10 @@ func TestParseDuplicateModIDCaseIsDeterministic(t *testing.T) {
 func TestParseDuplicateGameDepCase(t *testing.T) {
 	info, err := Parse([]byte(`{"dependencies":{"game":"1.20","Game":"1.21"}}`))
 	if err != nil || !slices.Equal(info.Dependencies, []string{"game"}) || info.GameVersion != "1.21" {
+		t.Fatalf("info = %+v, %v", info, err)
+	}
+	info, err = Parse([]byte(`{"dependencies":{"Game":"1.21","game":"1.20"}}`))
+	if err != nil || info.GameVersion != "1.20" {
 		t.Fatalf("info = %+v, %v", info, err)
 	}
 }

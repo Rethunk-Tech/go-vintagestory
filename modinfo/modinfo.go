@@ -2,9 +2,9 @@
 package modinfo
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
-	"maps"
 	"slices"
 	"strings"
 
@@ -22,15 +22,17 @@ type ModInfo struct {
 }
 
 // Parse reads a modinfo.json as leniently as the game reads it with Newtonsoft: comments, trailing commas and any key
-// case.
+// case. Newtonsoft sets a property once per occurrence, so of several spellings of one key the last in the file wins.
 func Parse(b []byte) (ModInfo, error) {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(lenientjson.Clean(b), &raw); err != nil {
+	clean := lenientjson.Clean(b)
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(clean, &obj); err != nil {
 		return ModInfo{}, err
 	}
-	if raw == nil {
+	if obj == nil {
 		return ModInfo{}, errors.New("modinfo is not a JSON object")
 	}
+	raw, _ := members(clean)
 	info := ModInfo{Name: text(raw, "name"), ModID: text(raw, "modid"), Version: text(raw, "version")}
 	var authors []string
 	_ = json.Unmarshal(field(raw, "authors"), &authors)
@@ -39,20 +41,17 @@ func Parse(b []byte) (ModInfo, error) {
 			info.Authors = append(info.Authors, a)
 		}
 	}
-	var deps map[string]json.RawMessage
-	if json.Unmarshal(field(raw, "dependencies"), &deps) == nil {
-		for _, id := range slices.Sorted(maps.Keys(deps)) {
-			v := deps[id]
-			info.Dependencies = append(info.Dependencies, strings.ToLower(id))
+	if deps, ok := members(field(raw, "dependencies")); ok {
+		for _, d := range deps {
+			info.Dependencies = append(info.Dependencies, strings.ToLower(d.key))
 			var ver string
 			var n json.Number
-			if json.Unmarshal(v, &n) == nil && n != "" {
+			if json.Unmarshal(d.val, &n) == nil && n != "" {
 				ver = n.String()
-			} else if json.Unmarshal(v, &ver) != nil {
+			} else if json.Unmarshal(d.val, &ver) != nil {
 				continue
 			}
-			ver = strings.TrimSpace(ver)
-			if strings.EqualFold(id, "game") && ver != "*" && info.GameVersion == "" {
+			if ver = strings.TrimSpace(ver); strings.EqualFold(d.key, "game") && ver != "*" {
 				info.GameVersion = strings.TrimPrefix(ver, "v")
 			}
 		}
@@ -62,16 +61,40 @@ func Parse(b []byte) (ModInfo, error) {
 	return info, nil
 }
 
-func field(raw map[string]json.RawMessage, name string) json.RawMessage {
-	for _, k := range slices.Sorted(maps.Keys(raw)) {
-		if strings.EqualFold(k, name) {
-			return raw[k]
+type member struct {
+	key string
+	val json.RawMessage
+}
+
+// members lists an object's entries in document order, which a map would lose.
+func members(b json.RawMessage) ([]member, bool) {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return nil, false
+	}
+	var out []member
+	for dec.More() {
+		k, err := dec.Token()
+		key, isKey := k.(string)
+		var v json.RawMessage
+		if err != nil || !isKey || dec.Decode(&v) != nil {
+			return out, false
+		}
+		out = append(out, member{key, v})
+	}
+	return out, true
+}
+
+func field(raw []member, name string) json.RawMessage {
+	for _, m := range slices.Backward(raw) {
+		if strings.EqualFold(m.key, name) {
+			return m.val
 		}
 	}
 	return nil
 }
 
-func text(raw map[string]json.RawMessage, name string) string {
+func text(raw []member, name string) string {
 	f := field(raw, name)
 	var n json.Number // Newtonsoft reads a bare number as the string it spells
 	if json.Unmarshal(f, &n) == nil && n != "" {
