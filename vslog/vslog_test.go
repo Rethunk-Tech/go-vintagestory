@@ -13,6 +13,16 @@ func TestParseLineReadsTheHeaderAndLeavesTheLevelWordAlone(t *testing.T) {
 	}
 }
 
+func TestParseLineStripsTrailingNewlines(t *testing.T) {
+	want := Line{Time: "18:29:40", Level: "Notification", Message: "Game Version: v1.21.5 (Stable)"}
+	for _, end := range []string{"", "\n", "\r", "\r\n"} {
+		got, ok := ParseLine("30.11.2025 18:29:40 [Notification] Game Version: v1.21.5 (Stable)" + end)
+		if !ok || got != want {
+			t.Fatalf("end %q: line = %+v, %v", end, got, ok)
+		}
+	}
+}
+
 func TestGameVersionReadsTheVersionTheGameLogsAtStart(t *testing.T) {
 	line, ok := ParseLine("30.11.2025 18:29:40 [Notification] Game Version: v1.21.5 (Stable)")
 	if !ok || GameVersion(line.Message) != "1.21.5" {

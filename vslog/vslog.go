@@ -19,7 +19,7 @@ var header = regexp.MustCompile(`^\d{1,2}\.\d{1,2}\.\d{4} (\d\d:\d\d:\d\d) \[(\w
 // ParseLine splits one log line. It reports false for a line in another shape, such as the continuation of a stack
 // trace. Level is the game's word, unmapped: a caller decides which words mean what in its own vocabulary.
 func ParseLine(line string) (Line, bool) {
-	m := header.FindStringSubmatch(strings.TrimRight(line, "\r"))
+	m := header.FindStringSubmatch(strings.TrimRight(line, "\r\n"))
 	if m == nil {
 		return Line{}, false
 	}
