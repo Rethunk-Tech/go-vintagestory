@@ -39,7 +39,7 @@ func FuzzAddCodeDomains(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, entry []byte) {
 		used := map[string]struct{}{}
-		addCodeDomains(entry, used)
+		_ = addCodeDomains(entry, used)
 		for d := range used {
 			if d == "" || d != strings.ToLower(d) || strings.Contains(d, ":") || slices.Contains(baseDomains, d) {
 				t.Fatalf("domain %q from %x", d, entry)

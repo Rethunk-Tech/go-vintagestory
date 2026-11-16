@@ -3,6 +3,7 @@ package savedb
 import (
 	"database/sql"
 	"encoding/binary"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -116,7 +117,9 @@ func TestAddCodeDomainsSkipsBaseDomainsInAnyCase(t *testing.T) {
 	entry = binary.AppendUvarint(entry, uint64(len(ids)))
 	entry = append(entry, ids...)
 	used := map[string]struct{}{}
-	addCodeDomains(entry, used)
+	if err := addCodeDomains(entry, used); err != nil {
+		t.Fatal(err)
+	}
 	if len(used) != 0 {
 		t.Fatalf("domains = %v", used)
 	}
@@ -160,7 +163,7 @@ func TestEachFieldUnclosedGroupIsBadProto(t *testing.T) {
 	data = binary.AppendUvarint(data, 40<<3|3)
 	data = protoString(data, vsWorldName, "Bjornheim")
 	data = protoString(data, vsLastSavedVersion, "1.21.4")
-	if err := eachField(data, func(uint64, uint64, []byte) {}); err != errBadProto {
+	if err := eachField(data, func(uint64, uint64, []byte) {}); !errors.Is(err, errBadProto) {
 		t.Fatalf("err = %v", err)
 	}
 }

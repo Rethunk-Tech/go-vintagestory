@@ -202,6 +202,10 @@ func eachField(msg []byte, f func(num, v uint64, b []byte)) error {
 			return errBadProto
 		}
 	}
+	return errIfUnclosed(depth)
+}
+
+func errIfUnclosed(depth int) error {
 	if depth != 0 {
 		return errBadProto
 	}
