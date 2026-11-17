@@ -52,6 +52,9 @@ type World struct {
 // Read opens the world at path and reads its gamedata row. The database is opened read-only and immutable, so a world
 // the game holds open is readable and a read never writes to it.
 func Read(ctx context.Context, path string) (World, error) {
+	if strings.Contains(path, "\x00") {
+		return World{}, errors.New("world path contains a NUL byte")
+	}
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return World{}, err

@@ -73,6 +73,13 @@ func TestReadReadsAWorldsGamedata(t *testing.T) {
 	}
 }
 
+func TestReadRejectsANULPath(t *testing.T) {
+	_, err := Read(t.Context(), "a\x00b.vcdbs")
+	if err == nil || err.Error() != "world path contains a NUL byte" {
+		t.Fatalf("got %v", err)
+	}
+}
+
 func TestReadOfAFileThatIsNotSQLiteFails(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "Broken.vcdbs")
 	if err := os.WriteFile(path, []byte("not sqlite"), 0o600); err != nil {
