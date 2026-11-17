@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"net/url"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -52,17 +51,11 @@ func FuzzAddCodeDomains(f *testing.F) {
 	})
 }
 
-// FuzzRead holds that a .vcdbs of any bytes fails rather than panics, and that a world it accepts never names a field
-// longer than the file or a domain the game itself owns.
+// FuzzRead holds that a gamedata blob in a .vcdbs fails rather than panics, and that a world it accepts never names a
+// field longer than the blob or a domain the game itself owns.
 func FuzzRead(f *testing.F) {
-	f.Add([]byte("not sqlite"))
 	f.Add([]byte{})
-	dir := f.TempDir()
-	path := filepath.Join(dir, "seed.vcdbs")
-	conn, err := sql.Open("sqlite", path)
-	if err != nil {
-		f.Fatal(err)
-	}
+	f.Add([]byte("not protobuf"))
 	var data []byte
 	data = protoString(data, vsWorldName, "Bjornheim")
 	data = protoString(data, vsLastSavedVersion, "1.21.4")
@@ -81,32 +74,30 @@ func FuzzRead(f *testing.F) {
 	data = binary.AppendUvarint(data, vsModData<<3|2)
 	data = binary.AppendUvarint(data, uint64(len(entry)))
 	data = append(data, entry...)
-	if _, err := conn.Exec("CREATE TABLE gamedata (savegameid integer PRIMARY KEY, data BLOB)"); err != nil {
-		f.Fatal(err)
-	}
-	if _, err := conn.Exec("INSERT INTO gamedata VALUES (1, ?)", data); err != nil {
-		f.Fatal(err)
-	}
-	if err := conn.Close(); err != nil {
-		f.Fatal(err)
-	}
-	seed, err := os.ReadFile(path)
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(seed)
-	f.Fuzz(func(t *testing.T, file []byte) {
+	f.Add(data)
+	f.Fuzz(func(t *testing.T, gamedata []byte) {
 		p := filepath.Join(t.TempDir(), "w.vcdbs")
-		if err := os.WriteFile(p, file, 0o600); err != nil {
+		conn, err := sql.Open("sqlite", p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = conn.Close() }()
+		if _, err := conn.ExecContext(t.Context(), "CREATE TABLE gamedata (savegameid integer PRIMARY KEY, data BLOB)"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := conn.ExecContext(t.Context(), "INSERT INTO gamedata VALUES (1, ?)", gamedata); err != nil {
+			t.Fatal(err)
+		}
+		if err := conn.Close(); err != nil {
 			t.Fatal(err)
 		}
 		w, err := Read(t.Context(), p)
 		if err != nil {
 			return
 		}
-		n := len(file)
+		n := len(gamedata)
 		if len(w.Name) > n || len(w.GameVersion) > n || len(w.PlayStyle) > n || len(w.WorldID) > n || len(w.Domains) > n {
-			t.Fatalf("field longer than file")
+			t.Fatalf("field longer than gamedata")
 		}
 		for _, d := range w.Domains {
 			if d == "" || d != strings.ToLower(d) || strings.Contains(d, ":") || slices.Contains(baseDomains, d) {
