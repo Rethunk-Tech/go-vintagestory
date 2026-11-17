@@ -10,4 +10,7 @@ func TestReadOnlyURIPinsADriveLetter(t *testing.T) {
 	if got := readOnlyURI("/saves/Bjornheim.vcdbs"); got != "file:///saves/Bjornheim.vcdbs?mode=ro&immutable=1" {
 		t.Fatalf("posix uri = %q", got)
 	}
+	if got := readOnlyURI(" 00"); got != "file:///%2000?mode=ro&immutable=1" {
+		t.Fatalf("relative uri = %q", got)
+	}
 }

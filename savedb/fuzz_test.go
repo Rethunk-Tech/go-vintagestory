@@ -126,8 +126,8 @@ func FuzzReadOnlyURI(f *testing.F) {
 		if err != nil {
 			t.Fatalf("readOnlyURI(%q) = %q: %v", db, raw, err)
 		}
-		if u.Scheme != "file" {
-			t.Fatalf("scheme %q from %q", u.Scheme, db)
+		if u.Scheme != "file" || u.Host != "" {
+			t.Fatalf("scheme/host %q %q from %q", u.Scheme, u.Host, db)
 		}
 		q := u.Query()
 		if q.Get("mode") != "ro" || q.Get("immutable") != "1" {

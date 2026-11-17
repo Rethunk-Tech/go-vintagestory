@@ -103,11 +103,12 @@ func Read(ctx context.Context, path string) (World, error) {
 	return w, nil
 }
 
-// readOnlyURI is the SQLite URI for db, opened read-only and immutable. A Windows drive letter has to keep its colon,
-// which no URL path may carry, so it gains a leading slash.
+// readOnlyURI is the SQLite URI for db, opened read-only and immutable. A path that does not already start with a
+// slash — a Windows drive letter, or a relative path — gains one, so String keeps it in the URL path; without that
+// slash it becomes the host, and a space there is an invalid escape.
 func readOnlyURI(db string) string {
 	p := filepath.ToSlash(db)
-	if len(p) > 1 && p[1] == ':' {
+	if !strings.HasPrefix(p, "/") {
 		p = "/" + p
 	}
 	return (&url.URL{Scheme: "file", Path: p, RawQuery: "mode=ro&immutable=1"}).String()
