@@ -6,10 +6,12 @@ import (
 )
 
 func FuzzParseLine(f *testing.F) {
+	f.Add("30.11.2025 18:29:40 [Notification] Game Version: v1.21.5 (Stable)\r")
 	f.Add("1.1.2024 12:00:00 [Notification] hello")
 	f.Add("12.12.2024 00:00:00 [Error] [modid] msg")
 	f.Add("1.1.2024 12:00:00 [Fatal] x")
 	f.Add("1.1.2024 12:00:00 [Notification] ")
+	f.Add("   at ImmersiveLight.ImmersiveLightModSystem.Start()")
 	f.Add("Game Version: v1.21.5 (Stable)")
 	f.Add("")
 	f.Add("not a log line")
@@ -26,6 +28,7 @@ func FuzzParseLine(f *testing.F) {
 
 func FuzzGameVersion(f *testing.F) {
 	f.Add("Game Version: v1.21.5 (Stable)")
+	f.Add("Game Version: v1.22.0-rc.4 (Unstable)")
 	f.Add("Game Version: v1.20.0")
 	f.Add("")
 	f.Add("no version")
@@ -38,6 +41,7 @@ func FuzzGameVersion(f *testing.F) {
 }
 
 func FuzzFirstException(f *testing.F) {
+	f.Add("\nSystem.NullReferenceException: Object reference not set to an instance of an object.\n   at ImmersiveLight.ImmersiveLightModSystem.Start()")
 	f.Add("System.Exception: boom\n  at Foo")
 	f.Add("\n\n  x  \n")
 	f.Add("")
