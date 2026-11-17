@@ -1,7 +1,11 @@
 package savedb
 
 import (
+	"database/sql"
 	"encoding/binary"
+	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -44,6 +48,90 @@ func FuzzAddCodeDomains(f *testing.F) {
 			if d == "" || d != strings.ToLower(d) || strings.Contains(d, ":") || slices.Contains(baseDomains, d) {
 				t.Fatalf("domain %q from %x", d, entry)
 			}
+		}
+	})
+}
+
+// FuzzRead holds that a .vcdbs of any bytes fails rather than panics, and that a world it accepts never names a field
+// longer than the file or a domain the game itself owns.
+func FuzzRead(f *testing.F) {
+	f.Add([]byte("not sqlite"))
+	f.Add([]byte{})
+	dir := f.TempDir()
+	path := filepath.Join(dir, "seed.vcdbs")
+	conn, err := sql.Open("sqlite", path)
+	if err != nil {
+		f.Fatal(err)
+	}
+	var data []byte
+	data = protoString(data, vsWorldName, "Bjornheim")
+	data = protoString(data, vsLastSavedVersion, "1.21.4")
+	data = protoString(data, vsPlayStyle, "surviveandbuild")
+	data = protoString(data, vsSavegameIdentifier, "9f8e7d6c-5b4a-3210-9876-543210fedcba")
+	var ids []byte
+	for _, code := range []string{"air", "creative:lamp", "primitivesurvival:fishbasket"} {
+		ids = binary.AppendUvarint(ids, 1<<3|2)
+		ids = binary.AppendUvarint(ids, uint64(len(protoString(nil, 2, code))))
+		ids = append(ids, protoString(nil, 2, code)...)
+	}
+	entry := protoString(nil, 1, "BlockIDs")
+	entry = binary.AppendUvarint(entry, 2<<3|2)
+	entry = binary.AppendUvarint(entry, uint64(len(ids)))
+	entry = append(entry, ids...)
+	data = binary.AppendUvarint(data, vsModData<<3|2)
+	data = binary.AppendUvarint(data, uint64(len(entry)))
+	data = append(data, entry...)
+	if _, err := conn.Exec("CREATE TABLE gamedata (savegameid integer PRIMARY KEY, data BLOB)"); err != nil {
+		f.Fatal(err)
+	}
+	if _, err := conn.Exec("INSERT INTO gamedata VALUES (1, ?)", data); err != nil {
+		f.Fatal(err)
+	}
+	if err := conn.Close(); err != nil {
+		f.Fatal(err)
+	}
+	seed, err := os.ReadFile(path)
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(seed)
+	f.Fuzz(func(t *testing.T, file []byte) {
+		p := filepath.Join(t.TempDir(), "w.vcdbs")
+		if err := os.WriteFile(p, file, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		w, err := Read(t.Context(), p)
+		if err != nil {
+			return
+		}
+		n := len(file)
+		if len(w.Name) > n || len(w.GameVersion) > n || len(w.PlayStyle) > n || len(w.WorldID) > n || len(w.Domains) > n {
+			t.Fatalf("field longer than file")
+		}
+		for _, d := range w.Domains {
+			if d == "" || d != strings.ToLower(d) || strings.Contains(d, ":") || slices.Contains(baseDomains, d) {
+				t.Fatalf("domain %q", d)
+			}
+		}
+	})
+}
+
+// FuzzReadOnlyURI holds that a world path always opens as a file URI pinned read-only and immutable.
+func FuzzReadOnlyURI(f *testing.F) {
+	f.Add("C:/saves/Bjornheim.vcdbs")
+	f.Add("/saves/Bjornheim.vcdbs")
+	f.Fuzz(func(t *testing.T, db string) {
+		raw := readOnlyURI(db)
+		u, err := url.Parse(raw)
+		if err != nil {
+			t.Fatalf("readOnlyURI(%q) = %q: %v", db, raw, err)
+		}
+		if u.Scheme != "file" {
+			t.Fatalf("scheme %q from %q", u.Scheme, db)
+		}
+		q := u.Query()
+		if q.Get("mode") != "ro" || q.Get("immutable") != "1" {
+			t.Fatalf("query = %q", u.RawQuery)
 		}
 	})
 }
