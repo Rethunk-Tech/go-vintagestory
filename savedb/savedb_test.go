@@ -174,3 +174,58 @@ func TestEachFieldUnclosedGroupIsBadProto(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestEachFieldATruncatedOrUnmatchedWireIsBadProto(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		msg  []byte
+	}{
+		{"truncated key", []byte{0x80}},
+		{"truncated varint", []byte{0x08}},
+		{"truncated fixed32", []byte{0x0d, 1, 2}},
+		{"end group with no start", []byte{0x0c}},
+	} {
+		if err := eachField(c.msg, func(uint64, uint64, []byte) {}); !errors.Is(err, errBadProto) {
+			t.Errorf("%s: err = %v", c.name, err)
+		}
+	}
+}
+
+func TestAddCodeDomainsABrokenEntryOrPairIsRejected(t *testing.T) {
+	used := map[string]struct{}{}
+	if err := addCodeDomains([]byte{0x80}, used); !errors.Is(err, errBadProto) {
+		t.Fatalf("truncated entry: %v", err)
+	}
+	// Field 2 is not a map entry; the next pair is truncated so a later valid code must not be counted.
+	var ids []byte
+	ids = protoString(ids, 2, "not-a-map-entry")
+	ids = binary.AppendUvarint(ids, 1<<3|2)
+	ids = binary.AppendUvarint(ids, 1)
+	ids = append(ids, 0x80)
+	good := protoString(nil, 2, "mymod:plank")
+	ids = binary.AppendUvarint(ids, 1<<3|2)
+	ids = binary.AppendUvarint(ids, uint64(len(good)))
+	ids = append(ids, good...)
+	entry := protoString(nil, 1, "ItemIDs")
+	entry = binary.AppendUvarint(entry, 2<<3|2)
+	entry = binary.AppendUvarint(entry, uint64(len(ids)))
+	entry = append(entry, ids...)
+	used = map[string]struct{}{}
+	if err := addCodeDomains(entry, used); !errors.Is(err, errBadProto) {
+		t.Fatalf("broken pair: %v", err)
+	}
+	if len(used) != 0 {
+		t.Fatalf("a later pair was counted after a broken one: %v", used)
+	}
+}
+
+func TestReadFailsWhenTheWorkingDirectoryIsGone(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := os.Remove(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Read(t.Context(), "world.vcdbs"); err == nil {
+		t.Fatal("a relative world path resolved with no working directory")
+	}
+}
