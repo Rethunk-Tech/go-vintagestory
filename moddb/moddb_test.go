@@ -2,8 +2,10 @@ package moddb
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Rethunk-Tech/go-httpkit"
@@ -118,5 +120,46 @@ func TestModUnknownIsNotFound(t *testing.T) {
 func TestPreReleaseIgnoresBuildMetadata(t *testing.T) {
 	if PreRelease("1.0.0+build-3") || !PreRelease("1.0.0-rc.1+build") {
 		t.Fatal("build metadata decides the release kind")
+	}
+}
+
+type recordTrip struct{ url, ua string }
+
+func (r *recordTrip) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.url = req.URL.String()
+	r.ua = req.Header.Get("User-Agent")
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Status:     "200 OK",
+		Body:       io.NopCloser(strings.NewReader(`{"mods":[]}`)),
+		Header:     http.Header{"Content-Type": {"application/json"}},
+		Request:    req,
+	}, nil
+}
+
+func TestNewUsesTheSiteAndSendsTheUserAgent(t *testing.T) {
+	rec := &recordTrip{}
+	c := New(Config{HTTP: &http.Client{Transport: rec}, UserAgent: "vs-test/1"})
+	if _, err := c.Mods(t.Context(), ListQuery{}); err != nil {
+		t.Fatal(err)
+	}
+	if rec.url != BaseURL+"/mods" {
+		t.Fatalf("url = %q", rec.url)
+	}
+	if rec.ua != "vs-test/1" {
+		t.Fatalf("ua = %q", rec.ua)
+	}
+}
+
+func TestGetWrapsABadURLAndADeadSite(t *testing.T) {
+	_, err := New(Config{BaseURL: ":"}).Tags(t.Context())
+	if err == nil || !strings.Contains(err.Error(), "vintage story mod db:") {
+		t.Fatalf("bad url: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	srv.Close()
+	_, err = New(Config{BaseURL: srv.URL, HTTP: srv.Client()}).Tags(t.Context())
+	if err == nil || !strings.Contains(err.Error(), "vintage story mod db:") {
+		t.Fatalf("dead site: %v", err)
 	}
 }
