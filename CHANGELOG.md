@@ -6,6 +6,8 @@ Notable changes to `go-vintagestory`. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-21
+
 ### Fixed
 
 - `modinfo`: the last spelling of a key wins, as Newtonsoft does, duplicate-case fields and game dependencies are deterministic, a JSON number is accepted as the game version, a bare number is read as its text, and the game version is trimmed before the wildcard check.
@@ -22,5 +24,6 @@ Notable changes to `go-vintagestory`. The format follows
 - `savedb`: `Read` opens a world's `.vcdbs` read-only and returns its name, play style, game version, play time, world id and the mod domains its blocks and items record.
 - `moddb`: `Client` lists, reads and tags against the Vintage Story Mod DB, with release selection (`Newest`, `PreRelease`), id and page helpers, and `ParseLink` for `vintagestorymodinstall://` links.
 
-[Unreleased]: https://github.com/Rethunk-Tech/go-vintagestory/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Rethunk-Tech/go-vintagestory/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Rethunk-Tech/go-vintagestory/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Rethunk-Tech/go-vintagestory/releases/tag/v0.1.0
