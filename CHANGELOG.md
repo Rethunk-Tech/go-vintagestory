@@ -6,6 +6,13 @@ Notable changes to `go-vintagestory`. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `modinfo`: the last spelling of a key wins, as Newtonsoft does, duplicate-case fields and game dependencies are deterministic, a JSON number is accepted as the game version, a bare number is read as its text, and the game version is trimmed before the wildcard check.
+- `savedb`: relative world paths are resolved before opening and kept in the file URI path, a world path with a NUL byte is rejected, protobuf with unclosed groups is rejected, truncated block and item id maps are surfaced, and base domains are skipped in any case.
+- `vslog`: `ParseLine` strips trailing newlines, and `GameVersion` keeps the prerelease token.
+- `moddb`: build metadata is ignored when judging a prerelease, a missing mod is an httpkit not-found, and live `Tags` answers whose `tagid` is a number decode.
+
 ## [0.1.0] - 2026-11-08
 
 ### Added
